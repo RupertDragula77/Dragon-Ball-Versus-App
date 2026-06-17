@@ -21,10 +21,10 @@ Za każdy poprawny wybór rośnie streak. Gra kończy się przy błędnym wyborz
 ## Technologie
 - Flutter
 - SQLite (sqflite) - tryb offline i zapis wyników
-- REST API - Dragon Ball API (https://dragonball-api.com)
+- REST API - Dragon Ball API (https://web.dragonball-api.com/)
 
 ## API
-Aplikacja korzysta z [Dragon Ball API](https://dragonball-api.com)
+Aplikacja korzysta z [Dragon Ball API](https://web.dragonball-api.com/)
 - `GET /api/characters?limit=100` - pobieranie listy postaci
 - `GET /api/characters/{id}` - pobieranie szczegółów postaci
 
