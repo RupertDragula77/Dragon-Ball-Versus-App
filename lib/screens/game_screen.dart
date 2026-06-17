@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import '../models/character.dart';
 import '../services/database_service.dart';
+import '../services/api_service.dart';
 import 'character_detail_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   final DatabaseService _dbService = DatabaseService();
+  final ApiService _apiService = ApiService();
   final Random _random = Random();
 
   late Character _character1;
@@ -68,6 +70,37 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  void _goToDetail(Character character) async {
+    // Drugie zapytanie REST - pobierz szczegóły po ID
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.orange),
+      ),
+    );
+
+    try {
+      final detailed = await _apiService.getCharacterById(character.id);
+      Navigator.pop(context); // zamknij loading
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CharacterDetailScreen(character: detailed),
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context); // zamknij loading
+      // Jeśli błąd - użyj danych które już mamy
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CharacterDetailScreen(character: character),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_gameOver) return _buildGameOver();
@@ -99,24 +132,30 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
           ),
+          // Postać 1 - GÓRA
           Expanded(
-            child: Row(
-              children: [
-                Expanded(child: _buildCharacterCard(_character1, 0)),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    'VS',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Expanded(child: _buildCharacterCard(_character2, 1)),
-              ],
+            child: _buildCharacterCard(_character1, 0),
+          ),
+          // VS w środku
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.orange,
+              borderRadius: BorderRadius.circular(20),
             ),
+            child: const Text(
+              'VS',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          // Postać 2 - DÓŁ
+          Expanded(
+            child: _buildCharacterCard(_character2, 1),
           ),
           const SizedBox(height: 16),
         ],
@@ -132,71 +171,90 @@ class _GameScreenState extends State<GameScreen> {
 
     return GestureDetector(
       onTap: () => _onChoose(index),
-      onLongPress: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CharacterDetailScreen(character: character),
-          ),
-        );
-      },
+      onLongPress: () => _goToDetail(character),
       child: Container(
-        margin: const EdgeInsets.all(8),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
           color: const Color(0xFF16213e),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: borderColor, width: 3),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(13),
-                ),
+            // Zdjęcie po lewej
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(13),
+              ),
+              child: SizedBox(
+                width: 120,
+                height: double.infinity,
                 child: Image.network(
                   character.image,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const Icon(
                     Icons.person,
                     color: Colors.white,
-                    size: 80,
+                    size: 60,
                   ),
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                character.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+            // Info po prawej
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      character.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      character.race,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (_answered) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ki: ${character.ki}',
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'przytrzymaj aby zobaczyć szczegóły',
+                      style: const TextStyle(
+                        color: Colors.white24,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-            if (_answered)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'Ki: ${character.ki}',
-                  style: const TextStyle(
-                    color: Colors.orange,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            // Ikona wyniku
             if (_answered && _selectedIndex == index)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12.0),
                 child: Icon(
                   _wasCorrect ? Icons.check_circle : Icons.cancel,
                   color: _wasCorrect ? Colors.green : Colors.red,
-                  size: 32,
+                  size: 40,
                 ),
               ),
           ],

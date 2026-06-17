@@ -36,16 +36,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final characters = await _apiService.getCharacters();
-      await _dbService.saveCharacters(characters);
+      final filtered = characters.where((c) =>
+      c.ki.toLowerCase() != 'unknown' && c.ki != '0'
+      ).toList();
+      await _dbService.saveCharacters(filtered);
       setState(() {
-        _characters = characters;
+        _characters = filtered;
         _isLoading = false;
       });
     } catch (e) {
       final cached = await _dbService.getCachedCharacters();
-      if (cached.isNotEmpty) {
+      final filtered = cached.where((c) =>
+      c.ki.toLowerCase() != 'unknown' && c.ki != '0'
+      ).toList();
+      if (filtered.isNotEmpty) {
         setState(() {
-          _characters = cached;
+          _characters = filtered;
           _isLoading = false;
           _errorMessage = 'Brak internetu - dane z cache';
         });
@@ -69,25 +75,13 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  '🐉 DRAGON BALL',
-                  style: TextStyle(
-                    color: Colors.orange,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const Text(
-                  'VERSUS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                  ),
+                // Logo Dragon Ball
+                Image.asset(
+                  'assets/images/applogo.png',
+                  height: 150,
                 ),
                 const SizedBox(height: 16),
+                // Highscore
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -107,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
+                // Loading / Error / Przycisk
                 if (_isLoading)
                   const CircularProgressIndicator(color: Colors.orange)
                 else if (_errorMessage != null && _characters.isEmpty)
